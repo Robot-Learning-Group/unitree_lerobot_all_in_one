@@ -1,0 +1,7 @@
+# Keep the CUDA wheels and the conda NumPy ABI unchanged by pip resolution.
+torch==2.7.1
+torchvision==0.22.1
+torchcodec==0.5
+flash-attn==2.8.3
+numpy==2.2.6
+cyclonedds==0.10.2

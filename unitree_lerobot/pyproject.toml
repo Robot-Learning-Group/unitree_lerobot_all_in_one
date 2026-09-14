@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unitree_lerobot"
+version = "0.3.0"
+description = "unitree data conversion and real machine inference verification"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "unitree"}
+]
+keywords = ["unitree", "robotics", "lerobot"]
+
+dependencies = [
+    "tyro>=0.9.10",
+    "matplotlib>=3.9.0",
+    "meshcat==0.3.2",
+    # "unitree_sdk2py @ git+https://github.com/unitreerobotics/unitree_sdk2_python.git@master",
+    "logging_mp==0.2.1",
+]
+
+[tool.setuptools]
+packages = ["unitree_lerobot"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = ["build", "venv", "__pycache__"]
+fix = true
+show-fixes = true
+
+# [tool.ruff.lint]
+# select = ["E4", "E7", "E9", "F", "I", "N", "B", "C4", "SIM"]
+# ignore = ["N801"]
+
+[tool.ruff.lint.per-file-ignores]
+"constants.py" = ["N815"]
+
+[tool.bandit]
+exclude_dirs = []
+skips = ["B101", "B311", "B404", "B603", "B615"]

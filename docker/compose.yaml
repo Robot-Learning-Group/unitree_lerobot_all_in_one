@@ -1,0 +1,29 @@
+services:
+  lerobot:
+    image: unitree-lerobot-all-in-one:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        MAX_JOBS: ${MAX_JOBS:-2}
+    init: true
+    network_mode: host
+    shm_size: 16gb
+    stdin_open: true
+    tty: true
+    working_dir: /workspace/unitree_lerobot
+    environment:
+      HOST_UID: ${HOST_UID:-}
+      HOST_GID: ${HOST_GID:-}
+      CYCLONEDDS_URI: ${CYCLONEDDS_URI:-}
+      DISPLAY: ${DISPLAY:-}
+    volumes:
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
