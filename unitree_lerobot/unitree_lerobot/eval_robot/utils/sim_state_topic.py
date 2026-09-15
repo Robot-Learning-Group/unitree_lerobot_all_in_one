@@ -15,8 +15,7 @@ from unitree_sdk2py.idl.std_msgs.msg.dds_ import String_
 
 import logging_mp
 
-logger_mp = logging_mp.getLogger(__name__)
-logger_mp.setLevel(logging_mp.INFO)
+logger_mp = logging_mp.get_logger(__name__)
 
 
 class SharedMemoryManager:

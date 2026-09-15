@@ -33,9 +33,10 @@ RUN python -m pip install --no-cache-dir 'setuptools<81' wheel packaging ninja \
 
 COPY unitree_sdk2_python /workspace/unitree_sdk2_python
 COPY unitree_lerobot /workspace/unitree_lerobot
+# Unitree v3.0 uses basic_config/get_logger, provided by logging_mp 0.1.6.
 RUN python -m pip install --no-cache-dir \
       -e './unitree_lerobot/lerobot[groot]' -e /workspace/unitree_sdk2_python -e . \
-      'pyzmq>=26.2.1,<28' pyyaml
+      'pyzmq>=26.2.1,<28' pyyaml 'logging_mp==0.1.6'
 
 # These checks run without a GPU, model downloads, cameras or DDS initialization.
 COPY docker/smoke_test.py /opt/smoke_test.py
