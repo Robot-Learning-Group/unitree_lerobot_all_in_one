@@ -85,11 +85,8 @@ def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
         img_config = {
             "fps": 30,
             "head_camera_type": "opencv",
-            "head_camera_image_shape": [480, 1280],  # Head camera resolution
+            "head_camera_image_shape": [480, 640],  # Head camera resolution
             "head_camera_id_numbers": [0],
-            "wrist_camera_type": "opencv",
-            "wrist_camera_image_shape": [480, 640],  # Wrist camera resolution
-            "wrist_camera_id_numbers": [2, 4],
         }
 
     ASPECT_RATIO_THRESHOLD = 2.0  # If the aspect ratio exceeds this value, it is considered binocular
@@ -113,6 +110,7 @@ def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
 
     tv_img_shm = shared_memory.SharedMemory(create=True, size=np.prod(tv_img_shape) * np.uint8().itemsize)
     tv_img_array = np.ndarray(tv_img_shape, dtype=np.uint8, buffer=tv_img_shm.buf)
+    wrist_img_array = wrist_img_shape = wrist_img_shm = None
 
     if WRIST and getattr(args, "sim", False):
         wrist_img_shape = (img_config["wrist_camera_image_shape"][0], img_config["wrist_camera_image_shape"][1] * 2, 3)
@@ -136,7 +134,12 @@ def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
             wrist_img_shm_name=wrist_img_shm.name,
         )
     else:
-        img_client = ImageClient(tv_img_shape=tv_img_shape, tv_img_shm_name=tv_img_shm.name)
+        img_client = ImageClient(
+            tv_img_shape=tv_img_shape,
+            tv_img_shm_name=tv_img_shm.name,
+            server_address="192.168.123.164",
+            port=55555,
+        )
 
     has_wrist_cam = "wrist_camera_type" in img_config
 
@@ -238,8 +241,9 @@ def process_images_and_observations(
     tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
 ):
     """Processes images and generates observations."""
-    current_tv_image = tv_img_array.copy()
-    current_wrist_image = wrist_img_array.copy() if has_wrist_cam else None
+    # JPEG decoding yields BGR; training observations use RGB.
+    current_tv_image = tv_img_array[:, :, ::-1].copy()
+    current_wrist_image = wrist_img_array[:, :, ::-1].copy() if has_wrist_cam else None
 
     left_top_cam = current_tv_image[:, : tv_img_shape[1] // 2] if is_binocular else current_tv_image
     right_top_cam = current_tv_image[:, tv_img_shape[1] // 2 :] if is_binocular else None

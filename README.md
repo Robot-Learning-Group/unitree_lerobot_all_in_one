@@ -82,8 +82,7 @@ docker compose -f docker/compose.yaml run --rm lerobot \
     --send_real_robot=false \
     --visualization=false
 
-# 実機推論：画像サーバーの起動と、make_robot.pyの画像受信設定が必要
-# ヘッド1台構成はmake_robot.pyの手首なし処理（未初期化変数）の修正も必要
+# 実機推論：192.168.123.164:55555でヘッド単眼640×480の画像配信を起動
 # 起動時に実機へ接続し、s入力で動作開始
 docker compose -f docker/compose.yaml run --rm lerobot \
   python -m unitree_lerobot.eval_robot.eval_g1 \
