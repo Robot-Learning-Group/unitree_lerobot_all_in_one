@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM mambaorg/micromamba:2.3.3 AS micromamba
-FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG MAX_JOBS=2
@@ -27,7 +27,7 @@ WORKDIR /workspace/unitree_lerobot
 COPY docker/constraints.txt /opt/constraints.txt
 ENV PIP_CONSTRAINT=/opt/constraints.txt
 RUN python -m pip install --no-cache-dir 'setuptools<81' wheel packaging ninja \
-    && python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu126 \
+    && python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu128 \
       torch==2.7.1 torchvision==0.22.1 torchcodec==0.5 \
     && MAX_JOBS=${MAX_JOBS} python -m pip install --no-cache-dir --no-build-isolation flash-attn==2.8.3
 
