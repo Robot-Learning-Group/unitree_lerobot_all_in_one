@@ -89,6 +89,25 @@ Decord 0.6.0の公式wheelにはプラットフォームタグの問題があり
 
 SDKとLeRobotがそれぞれ宣言する `opencv-python` と `opencv-python-headless` は、公式の依存宣言を変更せずに導入します。
 
+## 外部フォルダをマウントしてヘッドカメラ1台のデータを変換
+
+リポジトリのルートで実行します。`/ホスト側のデータフォルダ` は、`タスク名/episode_XXXX/` を含む親フォルダの絶対パスに置き換えてください。
+
+```bash
+docker compose -f docker/compose.yaml run --rm \
+  --volume "/ホスト側のデータフォルダ:/rawdata:ro" \
+  lerobot \
+  python -m unitree_lerobot.utils.convert_unitree_json_to_lerobot \
+    --raw-dir /rawdata \
+    --repo-id local/head_only_v1 \
+    --robot-type G1_DEX3_HEAD_ONLY_CONFIG \
+    --dataset-config.image-writer-processes 0 \
+    --dataset-config.image-writer-threads 4 \
+    --dataset-config.video-backend torchcodec
+```
+
+出力先は `unitree_lerobot/data/local/head_only_v1/` です。同じ `repo-id` の既存出力は削除されるため、残す場合は別名を指定してください。
+
 ## XR記録データでACTの学習を確認
 
 以下はリポジトリのルートで実行します。隣の `xr_teleoperate_all_in_one/data/pick cube` のうち、`episode_0001`〜`episode_0008` を使用します。8エピソード・1,431フレーム、30 FPS、640×480の画像3系統、状態・行動はそれぞれ28関節です。`episode_0009`以降は手の関節数が異なるため、このデータセットには混ぜません。
