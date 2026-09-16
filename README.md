@@ -1,6 +1,6 @@
 # Unitree LeRobot all in one
 
-Unitree LeRobotの公式リリース `v3.0` を変更せずに取り込み、ACT・LeRobot版GR00Tの学習・推論に必要なDocker環境を構築します。ACTの短時間学習を確認するための、XR記録データの変換・実行手順も含みます。
+Unitree LeRobotの公式リリース `v3.0` を基準に、ACT・LeRobot版GR00Tの学習・推論に必要なDocker環境を構築します。3カメラ用のDex3設定を追加し、公式の変換・学習スクリプトでXR記録データを利用します。
 
 ## ソース
 
@@ -15,6 +15,8 @@ Unitree LeRobotの公式リリース `v3.0` を変更せずに取り込み、ACT
 Unitree LeRobotと同梱LeRobotは、ソース・アセット・ライセンスをこのリポジトリで直接管理します。Git LFSのアセットは実体を取得しています。この2つの取り込み時には上流の `.git`、`.gitmodules`、使用しないDocker関連ファイルを除外しました。SDKは公式リポジトリを参照するsubmoduleで、上記コミットに固定しています。ローカルの他プロジェクトからのコピーはありません。
 
 LeRobotの `tests/artifacts/` にあるテスト用バイナリ45ファイル（safetensors・カメラ画像・RealSense記録）はGit管理から除外し、同ディレクトリをDockerのビルド対象からも除外しています。学習・推論用のコード、テスト用Pythonコード、ロボットのURDF・メッシュは保持しています。上流の資産依存テストを実行する場合は、上記LeRobotコミットからテスト資産を別途取得してください。Dockerの環境検査はこれらに依存しません。
+
+公式ソースからの追加は、`unitree_lerobot/unitree_lerobot/utils/constants.py` の `Unitree_G1_Dex3_Sim` 設定です。既存Dex3設定の関節定義を継承し、カメラ一覧と画像キーの対応だけを3カメラ用に定義しています。変換処理・学習処理は公式のものを使用します。
 
 ## 起動
 
@@ -91,21 +93,34 @@ SDKとLeRobotがそれぞれ宣言する `opencv-python` と `opencv-python-head
 
 以下はリポジトリのルートで実行します。隣の `xr_teleoperate_all_in_one/data/pick cube` のうち、`episode_0001`〜`episode_0008` を使用します。8エピソード・1,431フレーム、30 FPS、640×480の画像3系統、状態・行動はそれぞれ28関節です。`episode_0009`以降は手の関節数が異なるため、このデータセットには混ぜません。
 
-公式のDex3変換設定は4カメラを前提にしています。この記録は3カメラなので、本プロジェクトの [docker/convert_xr_dataset.py](docker/convert_xr_dataset.py) が公式LeRobotのデータセットAPIを使って変換します。`color_0`を頭部、`color_1`を左手首、`color_2`を右手首として保存します。公式ソースと元の記録ファイルは変更せず、カメラや関節の不足分を補完することもありません。
+公式のDex3変換設定は4カメラを前提にしています。この記録には、追加した `Unitree_G1_Dex3_Sim` を指定します。`color_0`を頭部（`cam_left_high`）、`color_1`を左手首、`color_2`を右手首として保存します。既存の `Unitree_G1_Dex3` はそのまま利用できます。
 
-変換元を読み取り専用でマウントします。出力先が既に存在する場合、変換スクリプトは上書きせず終了します。再変換するときは別の `--repo-id` を指定してください。
+公式の変換スクリプトは、`--raw-dir` の直下にタスク、その下にエピソードが並ぶ構成を読み込みます。対象エピソードの選択オプションはないため、コンテナの一時領域に前半8件へのシンボリックリンクを作ります。元の記録は読み取り専用でマウントします。
+
+公式スクリプトは同じ `repo-id` の既存出力を削除するため、以下では実行前に出力先が存在しないことを確認します。再変換するときは `dataset_id` を別名にしてください。
 
 ```bash
 docker compose -f docker/compose.yaml run --rm -T \
   --volume "$(realpath ../xr_teleoperate_all_in_one/data):/rawdata:ro" \
   lerobot env HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 OMP_NUM_THREADS=2 \
-  python /workspace/docker/convert_xr_dataset.py \
-    --raw-dir '/rawdata/pick cube' \
-    --repo-id local/pick_cube_dex3_v3 \
-    --episodes 1 2 3 4 5 6 7 8
+  bash -eu <<'BASH'
+dataset_id=local/pick_cube_dex3_v3_official
+test ! -e "$HF_LEROBOT_HOME/$dataset_id"
+mkdir -p /tmp/xr_dex3_input/pick_cube
+for episode in {0001..0008}; do
+  ln -s "/rawdata/pick cube/episode_${episode}" "/tmp/xr_dex3_input/pick_cube/episode_${episode}"
+done
+python -m unitree_lerobot.utils.convert_unitree_json_to_lerobot \
+  --raw-dir /tmp/xr_dex3_input \
+  --repo-id "$dataset_id" \
+  --robot-type Unitree_G1_Dex3_Sim \
+  --dataset-config.image-writer-processes 0 \
+  --dataset-config.image-writer-threads 4 \
+  --dataset-config.video-backend torchcodec
+BASH
 ```
 
-変換結果は `unitree_lerobot/data/local/pick_cube_dex3_v3/` に保存されます。`meta/conversion_source.json` に元エピソード番号・フレーム数・JSONのSHA-256を記録します。
+変換結果は `unitree_lerobot/data/local/pick_cube_dex3_v3_official/` に保存されます。独自の変換スクリプトは使用しません。
 
 次に、公式の学習CLIでACTを10ステップ実行します。動作確認用としてバッチサイズを2にし、ResNetの事前学習済み重みは使いません。学習ループ・逆伝播・チェックポイント保存の確認が目的で、ポリシー性能の評価ではありません。
 
@@ -113,8 +128,8 @@ docker compose -f docker/compose.yaml run --rm -T \
 docker compose -f docker/compose.yaml run --rm -T lerobot \
   env HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 OMP_NUM_THREADS=2 \
   lerobot-train \
-    --dataset.repo_id=local/pick_cube_dex3_v3 \
-    --dataset.root=/workspace/unitree_lerobot/data/local/pick_cube_dex3_v3 \
+    --dataset.repo_id=local/pick_cube_dex3_v3_official \
+    --dataset.root=/workspace/unitree_lerobot/data/local/pick_cube_dex3_v3_official \
     --dataset.video_backend=torchcodec \
     --policy.type=act \
     --policy.device=cuda \
@@ -123,7 +138,7 @@ docker compose -f docker/compose.yaml run --rm -T lerobot \
     --wandb.enable=false \
     --batch_size=2 --num_workers=2 --steps=10 \
     --log_freq=1 --save_freq=10 --eval_freq=0 \
-    --output_dir=outputs/train/act_pick_cube_v3_smoke
+    --output_dir=outputs/train/act_pick_cube_v3_official_smoke
 ```
 
 再実行時は `--output_dir` を別名にしてください。データと出力はGit管理・Dockerビルド対象から除外しています。
@@ -132,7 +147,7 @@ docker compose -f docker/compose.yaml run --rm -T lerobot \
 
 データ形式・学習・評価コマンド全般は [Unitree公式README](unitree_lerobot/README.md) と [LeRobot README](unitree_lerobot/unitree_lerobot/lerobot/README.md) を参照してください。実機推論とポリシー性能は今回の学習確認の対象外です。
 
-`v3.0`では、mainで見つかった画像クライアントの戻り値・画像処理の引数の不整合はありません。一方、実機・データセット評価の `--root` がデータセット生成に渡されない点は残っています。公式コードは修正していません。
+`v3.0`では、mainで見つかった画像クライアントの戻り値・画像処理の引数の不整合はありません。一方、実機・データセット評価の `--root` がデータセット生成に渡されない点は残っています。推論処理は修正していません。
 
 `eval_g1` は実機用です。公式実装では開始入力の前にロボットコントローラを初期化し、`--send_real_robot=false` を実機通信の停止には使いません。今回の環境検査ではコントローラやDDS participantを作成しません。
 
@@ -142,7 +157,7 @@ docker compose -f docker/compose.yaml run --rm -T lerobot \
 
 | 検査 | 結果 |
 | --- | --- |
-| 公式取得元との照合 | Unitree v3.0の201ファイルと同梱LeRobotの464ファイルが公式と一致。SDK submoduleも指定コミットから変更なし |
+| 公式取得元との照合 | Unitree v3.0との差分はconstants.pyの3カメラ設定追加のみ。同梱LeRobot・SDKは指定コミットから変更なし |
 | Compose設定・entrypoint構文 | 成功 |
 | Dockerイメージのビルド | 成功 |
 | ACT・GR00T・SDK・画像通信等のimport | 成功 |
@@ -154,16 +169,15 @@ docker compose -f docker/compose.yaml run --rm -T lerobot \
 | ホストのUID/GIDでのファイル作成・別コンテナでの永続化 | データとモデルがUID 1004／GID 1005で保存され、別コンテナから読み込み成功 |
 | Python依存整合性 | 上記Decordのwheelタグ警告のみ。その他の不整合なし |
 | XRデータ変換 | 8エピソード・1,431フレームをLeRobot dataset v3に変換。全エピソードの先頭・末尾16フレームを動画デコード |
-| 変換時の入力確認 | 異なる手の関節数は出力作成前に拒否。既存データセットの上書きも拒否 |
 | ACT学習 | 公式CLIがCUDAで10ステップ完走。全ステップでloss・勾配ノルムが有限値 |
 | チェックポイント | step 10、モデル・optimizer・前後処理を保存。ACTモデルの再読み込みに成功し、保存テンソル234個がすべて有限値 |
 
-学習時のlossは最初が61.872、最後が31.064でした。これは動作確認の記録で、性能を示す評価値ではありません。
+短時間の学習は動作確認であり、ポリシー性能の評価ではありません。
 
 ローカルの成果物（Git管理対象外）：
 
-- データ：`unitree_lerobot/data/local/pick_cube_dex3_v3/`
-- モデル：`unitree_lerobot/outputs/train/act_pick_cube_v3_smoke/checkpoints/000010/pretrained_model/`
-- ログ：`unitree_lerobot/outputs/train/act_pick_cube_v3_smoke/` 内の `training.log`、`conversion.log`、`checkpoint_check.log`、`docker_build.log`
+- データ：`unitree_lerobot/data/local/pick_cube_dex3_v3_official/`
+- モデル：`unitree_lerobot/outputs/train/act_pick_cube_v3_official_smoke/checkpoints/000010/pretrained_model/`
+- ログ：`unitree_lerobot/outputs/train/act_pick_cube_v3_official_smoke/` 内の `training.log`、`conversion.log`、`checkpoint_check.log`、`docker_build.log`
 
 学習済みポリシーの性能評価、実機への接続・動作指令は行っていません。

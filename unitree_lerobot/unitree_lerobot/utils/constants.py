@@ -176,6 +176,17 @@ G1_DEX3_CONFIG = RobotConfig(
 )
 
 
+G1_DEX3_CONFIG_SIM = dataclasses.replace(
+    G1_DEX3_CONFIG,
+    cameras=["cam_left_high", "cam_left_wrist", "cam_right_wrist"],
+    camera_to_image_key={
+        "color_0": "cam_left_high",
+        "color_1": "cam_left_wrist",
+        "color_2": "cam_right_wrist",
+    },
+)
+
+
 G1_BRAINCO_CONFIG = RobotConfig(
     motors=[
         "kLeftShoulderPitch",
@@ -467,16 +478,32 @@ LIFT_G1_DEX1_NOUSEWAIST_CONFIG = RobotConfig(
     json_action_data_name=["left_arm.qpos", "right_arm.qpos", "torso.qvel", "left_ee.qpos", "right_ee.qpos"],
 )
 
+# --------------------------------------------------------------------------------------------------------------------------
+# 追加したコンフィグ。カメラなどの構成に応じてここに適宜コンフィグを追加する。
+# 3指ハンド、ヘッドカメラのみのコンフィグ
+G1_DEX3_HEAD_ONLY_CONFIG = dataclasses.replace(
+    G1_DEX3_CONFIG,
+    cameras=["cam_left_high"],
+    camera_to_image_key={
+        "color_0": "cam_left_high",
+    },
+)
+# --------------------------------------------------------------------------------------------------------------------------
+
+
+
 ROBOT_CONFIGS = {
     "Unitree_Z1_Single": Z1_SINGLE_CONFIG,
     "Unitree_Z1_Dual": Z1_CONFIG,
     "Unitree_G1_Dex1": G1_DEX1_CONFIG,
     "Unitree_G1_Dex1_Sim": G1_DEX1_CONFIG_SIM,
     "Unitree_G1_Dex3": G1_DEX3_CONFIG,
+    "Unitree_G1_Dex3_Sim": G1_DEX3_CONFIG_SIM,
     "Unitree_G1_Brainco": G1_BRAINCO_CONFIG,
     "Unitree_G1_Inspire": G1_INSPIRE_CONFIG,
     "Unitree_G1_MoveibleLift_Dex1_UseWaist": MOVEIBLE_LIFT_G1_DEX1_USEWAIST_CONFIG,
     "Unitree_G1_MoveibleLift_Dex1_NoUseWaist": MOVEIBLE_LIFT_G1_DEX1_NOUSEWAIST_CONFIG,
     "Unitree_G1_Lift_Dex1_UseWaist": LIFT_G1_DEX1_USEWAIST_CONFIG,
     "Unitree_G1_Lift_Dex1_NoUseWaist": LIFT_G1_DEX1_NOUSEWAIST_CONFIG,
+    "G1_DEX3_HEAD_ONLY_CONFIG": G1_DEX3_HEAD_ONLY_CONFIG
 }
