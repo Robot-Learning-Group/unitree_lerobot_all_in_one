@@ -82,12 +82,17 @@ def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
             "wrist_camera_id_numbers": [2, 4],
         }
     else:
+    # -------------------------------------------------------------------------------------------------------------------------------------------------
+    # 実機カメラ設定
+    # -------------------------------------------------------------------------------------------------------------------------------------------------
+    # 阪大側変更処理。手首カメラ追加時は上記を参考に変更してください。
         img_config = {
             "fps": 30,
             "head_camera_type": "opencv",
             "head_camera_image_shape": [480, 640],  # Head camera resolution
             "head_camera_id_numbers": [0],
         }
+    # -------------------------------------------------------------------------------------------------------------------------------------------------
 
     ASPECT_RATIO_THRESHOLD = 2.0  # If the aspect ratio exceeds this value, it is considered binocular
     if len(img_config["head_camera_id_numbers"]) > 1 or (
@@ -132,13 +137,19 @@ def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
             tv_img_shm_name=tv_img_shm.name,
             wrist_img_shape=wrist_img_shape,
             wrist_img_shm_name=wrist_img_shm.name,
+            server_address=args.image_host,
+            port=args.image_port,
         )
     else:
+    # -------------------------------------------------------------------------------------------------------------------------------------------------
+    # 実機カメラ設定
+    # -------------------------------------------------------------------------------------------------------------------------------------------------
+    # 阪大側変更処理。手首カメラ追加時は上記を参考に変更してください。
         img_client = ImageClient(
             tv_img_shape=tv_img_shape,
             tv_img_shm_name=tv_img_shm.name,
-            server_address="192.168.123.164",
-            port=55555,
+            server_address=args.image_host,
+            port=args.image_port,
         )
 
     has_wrist_cam = "wrist_camera_type" in img_config

@@ -120,6 +120,8 @@ class EvalRealConfig:
     root: str = ""
     episodes: int = 0
     frequency: float = 30.0
+    image_host: str = "192.168.123.164"
+    image_port: int = 55555
 
     # Basic control parameters
     arm: str = "G1_29"  # G1_29, G1_23
