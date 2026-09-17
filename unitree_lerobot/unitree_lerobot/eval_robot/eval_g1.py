@@ -159,8 +159,8 @@ def eval_policy(
                 idx += 1
                 # Maintain frequency
                 time.sleep(max(0, (1.0 / cfg.frequency) - (time.perf_counter() - loop_start_time)))
-    except Exception as e:
-        logger_mp.info(f"An error occurred: {e}")
+    except Exception:
+        logging.exception("Robot evaluation failed")
     finally:
         if image_info:
             cleanup_resources(image_info)

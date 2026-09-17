@@ -99,9 +99,9 @@ docker compose -f docker/compose.yaml run --rm lerobot \
     --repo_id=local/データセット名 \
     --image_host=192.168.123.164 --image_port=55555 \
     --arm=G1_29 --ee=dex3 --frequency=30 \
-    --visualization=false
+    --visualization=false \
     # 必要に応じて以下も調整すると良い。
-    --policy.n_action_steps=30
+    --policy.n_action_steps=30 \
     --policy.temporal_ensemble_coeff=-0.01 # ACTのみのパラメータ
 ```
 ## 推論時に設定する主要なパラメータ
