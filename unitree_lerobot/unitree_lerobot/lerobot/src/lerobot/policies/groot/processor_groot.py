@@ -150,6 +150,7 @@ def make_groot_pre_post_processors(
         # 5. Collate eagle_content -> eagle_* tensors
         GrootEagleCollateStep(
             tokenizer_assets_repo=config.tokenizer_assets_repo,
+            device=config.device,
         ),
         # 6. Move to device
         DeviceProcessorStep(device=config.device),
@@ -497,7 +498,9 @@ class GrootEagleEncodeStep(ProcessorStep):
 
 
 # Original GR00T-style collate: converts eagle_content -> eagle_* tensors
-def collate(features: list[dict[str, Any]], eagle_processor: ProcessorMixin) -> dict[str, Any]:
+def collate(
+    features: list[dict[str, Any]], eagle_processor: ProcessorMixin, device: str | None = None
+) -> dict[str, Any]:
     batch: dict[str, Any] = {}
     keys = features[0].keys()
 
@@ -515,7 +518,12 @@ def collate(features: list[dict[str, Any]], eagle_processor: ProcessorMixin) -> 
             eagle_inputs = eagle_processor(
                 text=text_list,
                 images=image_inputs,
-                images_kwargs={"min_dynamic_tiles": 1, "max_dynamic_tiles": 1, "use_thumbnail": False},
+                images_kwargs={
+                    "min_dynamic_tiles": 1,
+                    "max_dynamic_tiles": 1,
+                    "use_thumbnail": False,
+                    "device": device,
+                },
                 return_tensors="pt",
                 padding=True,
             )
@@ -536,6 +544,7 @@ def collate(features: list[dict[str, Any]], eagle_processor: ProcessorMixin) -> 
 @ProcessorStepRegistry.register(name="groot_eagle_collate_v3")
 class GrootEagleCollateStep(ProcessorStep):
     tokenizer_assets_repo: str = DEFAULT_TOKENIZER_ASSETS_REPO
+    device: str | None = None
     _proc: ProcessorMixin | None = field(default=None, init=False, repr=False)
 
     @property
@@ -553,7 +562,7 @@ class GrootEagleCollateStep(ProcessorStep):
 
         # Build features list as original API expects: one dict per batch item
         features = [{"eagle_content": content} for content in contents]
-        batched = collate(features, self.proc)
+        batched = collate(features, self.proc, device=self.device)
 
         # Inject eagle_* tensors and remove the temporary content and raw video to free memory
         for k, v in batched.items():
@@ -568,6 +577,9 @@ class GrootEagleCollateStep(ProcessorStep):
 
     def transform_features(self, features):
         return features
+
+    def get_config(self) -> dict[str, Any]:
+        return {"tokenizer_assets_repo": self.tokenizer_assets_repo, "device": self.device}
 
 
 @dataclass
