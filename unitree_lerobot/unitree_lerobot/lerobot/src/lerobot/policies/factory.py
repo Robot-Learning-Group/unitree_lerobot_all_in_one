@@ -47,6 +47,7 @@ from lerobot.processor.converters import (
     transition_to_batch,
     transition_to_policy_action,
 )
+from lerobot.processor.hand_joint_limits import configure_hand_normalization
 from lerobot.utils.constants import POLICY_POSTPROCESSOR_DEFAULT_NAME, POLICY_PREPROCESSOR_DEFAULT_NAME
 
 
@@ -167,6 +168,8 @@ class ProcessorConfigKwargs(TypedDict, total=False):
         preprocessor_overrides: A dictionary of overrides for the preprocessor configuration.
         postprocessor_overrides: A dictionary of overrides for the postprocessor configuration.
         dataset_stats: Dataset statistics for normalization.
+        dataset_meta: Dataset metadata used to resolve or validate hand joint names.
+        ee: Optional robot end-effector type to validate against saved hand limits.
     """
 
     preprocessor_config_filename: str | None
@@ -174,6 +177,8 @@ class ProcessorConfigKwargs(TypedDict, total=False):
     preprocessor_overrides: dict[str, Any] | None
     postprocessor_overrides: dict[str, Any] | None
     dataset_stats: dict[str, dict[str, torch.Tensor]] | None
+    dataset_meta: LeRobotDatasetMetadata | None
+    ee: str | None
 
 
 def make_pre_post_processors(
@@ -228,7 +233,7 @@ def make_pre_post_processors(
             kwargs["preprocessor_overrides"] = preprocessor_overrides
             kwargs["postprocessor_overrides"] = postprocessor_overrides
 
-        return (
+        processors = (
             PolicyProcessorPipeline.from_pretrained(
                 pretrained_model_name_or_path=pretrained_path,
                 config_filename=kwargs.get(
@@ -248,6 +253,14 @@ def make_pre_post_processors(
                 to_output=transition_to_policy_action,
             ),
         )
+        configure_hand_normalization(
+            processors[0],
+            enabled=policy_cfg.hand_joint_limit_normalization,
+            dataset_meta=kwargs.get("dataset_meta"),
+            ee=kwargs.get("ee"),
+            loaded=True,
+        )
+        return processors
 
     # Create a new processor based on policy type
     if isinstance(policy_cfg, TDMPCConfig):
@@ -333,6 +346,12 @@ def make_pre_post_processors(
     else:
         raise NotImplementedError(f"Processor for policy type '{policy_cfg.type}' is not implemented.")
 
+    configure_hand_normalization(
+        processors[0],
+        enabled=policy_cfg.hand_joint_limit_normalization,
+        dataset_meta=kwargs.get("dataset_meta"),
+        ee=kwargs.get("ee"),
+    )
     return processors
 
 

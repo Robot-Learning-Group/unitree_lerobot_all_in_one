@@ -186,6 +186,8 @@ def eval_main(cfg: EvalRealConfig):
     preprocessor, postprocessor = make_pre_post_processors(
         policy_cfg=cfg.policy,
         pretrained_path=cfg.policy.pretrained_path,
+        dataset_meta=dataset.meta,
+        ee=cfg.ee,
         dataset_stats=rename_stats(dataset.meta.stats, cfg.rename_map),
         preprocessor_overrides={
             "device_processor": {"device": cfg.policy.device},

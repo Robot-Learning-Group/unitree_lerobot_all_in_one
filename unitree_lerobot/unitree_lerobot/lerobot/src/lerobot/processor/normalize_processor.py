@@ -30,6 +30,7 @@ from lerobot.utils.constants import ACTION
 
 from .converters import from_tensor_to_numpy, to_tensor
 from .core import EnvTransition, PolicyAction, TransitionKey
+from .hand_joint_limits import normalize_hand_observations
 from .pipeline import PolicyProcessorPipeline, ProcessorStep, ProcessorStepRegistry
 
 
@@ -93,6 +94,7 @@ class _NormalizationMixin:
     dtype: torch.dtype | None = None
     eps: float = 1e-8
     normalize_observation_keys: set[str] | None = None
+    hand_joint_limits: dict[str, Any] | None = None
 
     _tensor_stats: dict[str, dict[str, Tensor]] = field(default_factory=dict, init=False, repr=False)
     _stats_explicitly_provided: bool = field(default=False, init=False, repr=False)
@@ -237,6 +239,8 @@ class _NormalizationMixin:
         }
         if self.normalize_observation_keys is not None:
             config["normalize_observation_keys"] = sorted(self.normalize_observation_keys)
+        if self.hand_joint_limits is not None:
+            config["hand_joint_limits"] = self.hand_joint_limits
         return config
 
     def _normalize_observation(self, observation: dict[str, Any], inverse: bool) -> dict[str, Tensor]:
@@ -258,6 +262,10 @@ class _NormalizationMixin:
                 # Convert to tensor but preserve original dtype for adaptation logic
                 tensor = torch.as_tensor(new_observation[key])
                 new_observation[key] = self._apply_transform(tensor, key, feature.type, inverse=inverse)
+                if key == "observation.state" and not inverse:
+                    new_observation[key] = normalize_hand_observations(
+                        tensor, new_observation[key], self.hand_joint_limits
+                    )
         return new_observation
 
     def _normalize_action(self, action: Tensor, inverse: bool) -> Tensor:

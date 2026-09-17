@@ -55,6 +55,9 @@ class PreTrainedConfig(draccus.ChoiceRegistry, HubMixin, abc.ABC):  # type: igno
 
     n_obs_steps: int = 1
 
+    # Normalize named Dex3/BrainCo observations using fixed joint limits.
+    hand_joint_limit_normalization: bool = True
+
     input_features: dict[str, PolicyFeature] = field(default_factory=dict)
     output_features: dict[str, PolicyFeature] = field(default_factory=dict)
 

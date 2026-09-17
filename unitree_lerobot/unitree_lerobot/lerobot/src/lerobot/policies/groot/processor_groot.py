@@ -22,6 +22,7 @@ import torch
 from einops import rearrange
 from PIL import Image
 
+from lerobot.processor.hand_joint_limits import normalize_hand_observations
 from lerobot.utils.import_utils import _transformers_available
 
 if TYPE_CHECKING or _transformers_available:
@@ -231,6 +232,7 @@ class GrootPackInputsStep(ProcessorStep):
     # Min-max normalization (SO100-like) applied BEFORE padding
     normalize_min_max: bool = True
     stats: dict[str, dict[str, Any]] | None = None
+    hand_joint_limits: dict[str, Any] | None = None
 
     def __call__(self, transition: EnvTransition) -> EnvTransition:
         obs = transition.get(TransitionKey.OBSERVATION, {}) or {}
@@ -299,9 +301,11 @@ class GrootPackInputsStep(ProcessorStep):
             if state.dim() != 2:
                 raise ValueError(f"state must be (B, D), got {tuple(state.shape)}")
             bsz, d = state.shape
+            raw_state = state
             # Normalize BEFORE padding
             if self.normalize_min_max:
                 state = _min_max_norm(state, "observation.state")
+            state = normalize_hand_observations(raw_state, state, self.hand_joint_limits)
             state = state.unsqueeze(1)  # (B, 1, D)
             if d > self.max_state_dim:
                 state = state[:, :, : self.max_state_dim]
@@ -391,6 +395,7 @@ class GrootPackInputsStep(ProcessorStep):
             "embodiment_tag": self.embodiment_tag,
             "embodiment_mapping": self.embodiment_mapping,
             "normalize_min_max": self.normalize_min_max,
+            "hand_joint_limits": self.hand_joint_limits,
         }
 
     def state_dict(self) -> dict[str, torch.Tensor]:

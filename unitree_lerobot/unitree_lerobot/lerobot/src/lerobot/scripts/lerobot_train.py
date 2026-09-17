@@ -239,6 +239,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     preprocessor, postprocessor = make_pre_post_processors(
         policy_cfg=cfg.policy,
         pretrained_path=cfg.policy.pretrained_path,
+        dataset_meta=dataset.meta,
         **processor_kwargs,
         **postprocessor_kwargs,
     )

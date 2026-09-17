@@ -46,7 +46,9 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
   --wandb.enable=false \
   --batch_size=32 --num_workers=4 --steps=100000 \
   --save_freq=10000 --eval_freq=0 \
-  --output_dir=outputs/train/出力フォルダ名
+  --output_dir=outputs/train/出力フォルダ名 \
+  --policy.chunk_size=50 \
+  --policy.n_action_steps=50
 ```
 
 ## GR00Tの学習
@@ -90,4 +92,11 @@ docker compose -f docker/compose.yaml run --rm lerobot \
     --image_host=192.168.123.164 --image_port=55555 \
     --arm=G1_29 --ee=dex3 --frequency=30 \
     --visualization=false
+```
+
+### 動かない関節の正規化がポリシーの性能を悪化させる問題について
+unitree_lerobot/unitree_lerobot/lerobot/src/lerobot/processor/hand_joint_limits.pyが新しく追加した正規化処理本体。既定でこれを使うようになっている。
+従来の正規化を使用する場合は、学習のコマンドで以下を指定する。
+```
+--policy.hand_joint_limit_normalization=false
 ```
