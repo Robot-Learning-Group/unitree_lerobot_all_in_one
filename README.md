@@ -31,7 +31,7 @@ docker compose -f docker/compose.yaml run --rm \
     --dataset-config.image-writer-threads 4 \
     --dataset-config.video-backend torchcodec
 ```
-
+# 学習
 ## ACTの学習
 
 ```bash
@@ -48,9 +48,7 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
   --save_freq=10000 --eval_freq=0 \
   --output_dir=outputs/train/出力フォルダ名 \
   --policy.chunk_size=50 \
-  --policy.n_action_steps=50
 ```
-
 ## GR00Tの学習
 
 ```bash
@@ -61,7 +59,6 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
   --dataset.video_backend=torchcodec \
   --policy.type=groot \
   --policy.base_model_path=nvidia/GR00T-N1.5-3B \
-  --policy.tune_diffusion_model=false \
   --policy.device=cuda \
   --policy.push_to_hub=false \
   --wandb.enable=false \
@@ -69,8 +66,19 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
   --save_freq=1000 --eval_freq=0 \
   --output_dir=outputs/train/出力フォルダ名
 ```
+## 学習時に設定する主要なパラメータ
+- steps \
+  何ステップ学習するか
+- batch_size \
+  1ステップの学習で扱うサンプル数
+- policy.chunk_size \
+  ポリシーが一回の推論で行動を何フレーム先まで予測するか. 30ぐらいが良い？
+- save_freq \
+  何ステップごとにモデルの重みを保存するか
+- wandb.enable \
+  trueにするとwandbから学習曲線等が確認できる。wandbのアカウント、APIキーが必要
 
-## 推論
+# 推論
 
 ```bash
 # データセットで推論：起動後にsを入力
@@ -92,9 +100,19 @@ docker compose -f docker/compose.yaml run --rm lerobot \
     --image_host=192.168.123.164 --image_port=55555 \
     --arm=G1_29 --ee=dex3 --frequency=30 \
     --visualization=false
+    # 必要に応じて以下も調整すると良い。
+    --policy.n_action_steps=30
+    --temporal_ensemble_coeff=-0.01 # ACTのみのパラメータ
 ```
+## 推論時に設定する主要なパラメータ
+- image_host \
+  カメラサーバーが立ってるパソコンのIPアドレス
+- policy.n_action_steps \
+  1回の予測で出力した行動のうち、何ステップ分を実際の行動として実行するか
+- policy.temporal_ensemble_coeff (ACTのみ) \
+  行動の平滑化の係数。-0.01〜0.01あたりが適当？マイナスにすると、最新の予測を重視、プラスにすると、過去の予測を重視
 
-### 動かない関節の正規化がポリシーの性能を悪化させる問題について
+# 動かない関節の正規化がポリシーの性能を悪化させる問題について
 unitree_lerobot/unitree_lerobot/lerobot/src/lerobot/processor/hand_joint_limits.pyが新しく追加した正規化処理本体。既定でこれを使うようになっている。
 従来の正規化を使用する場合は、学習のコマンドで以下を指定する。
 ```
