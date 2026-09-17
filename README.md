@@ -102,7 +102,7 @@ docker compose -f docker/compose.yaml run --rm lerobot \
     --visualization=false
     # 必要に応じて以下も調整すると良い。
     --policy.n_action_steps=30
-    --temporal_ensemble_coeff=-0.01 # ACTのみのパラメータ
+    --policy.temporal_ensemble_coeff=-0.01 # ACTのみのパラメータ
 ```
 ## 推論時に設定する主要なパラメータ
 - image_host \
@@ -110,7 +110,7 @@ docker compose -f docker/compose.yaml run --rm lerobot \
 - policy.n_action_steps \
   1回の予測で出力した行動のうち、何ステップ分を実際の行動として実行するか
 - policy.temporal_ensemble_coeff (ACTのみ) \
-  行動の平滑化の係数。-0.01〜0.01あたりが適当？マイナスにすると、最新の予測を重視、プラスにすると、過去の予測を重視
+  行動の平滑化の係数。-0.02〜0.02あたりで調べるのが良い？マイナスにすると、最新の予測を重視、プラスにすると、過去の予測を重視
 
 # 動かない関節の正規化がポリシーの性能を悪化させる問題について
 unitree_lerobot/unitree_lerobot/lerobot/src/lerobot/processor/hand_joint_limits.pyが新しく追加した正規化処理本体。既定でこれを使うようになっている。
