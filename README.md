@@ -51,6 +51,8 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
 ```
 ## GR00Tの学習
 
+画像のリサイズ・正規化も `--policy.device` で指定したデバイスで実行します。`cuda` ならGPUを使います。変更は次回の学習起動から反映されます。
+
 ```bash
 # 再学習時は未使用のoutput_dirを指定
 docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
