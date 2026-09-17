@@ -48,6 +48,7 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
   --save_freq=10000 --eval_freq=0 \
   --output_dir=outputs/train/出力フォルダ名 \
   --policy.chunk_size=50 \
+  --policy.n_action_steps=50
 ```
 ## GR00Tの学習
 
