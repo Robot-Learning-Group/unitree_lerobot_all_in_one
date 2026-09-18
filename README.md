@@ -76,6 +76,8 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
   1ステップの学習で扱うサンプル数
 - policy.chunk_size \
   ポリシーが一回の推論で行動を何フレーム先まで予測するか. 30ぐらいが良い？
+- policy.n_action_steps \
+  1回の予測で出力した行動のうち、何ステップ分を実際の行動として実行するか。policy.chunk_size >= policy.n_action_stepsである必要がある。
 - save_freq \
   何ステップごとにモデルの重みを保存するか
 - wandb.enable \
@@ -111,7 +113,7 @@ docker compose -f docker/compose.yaml run --rm lerobot \
 - image_host \
   カメラサーバーが立ってるパソコンのIPアドレス
 - policy.n_action_steps \
-  1回の予測で出力した行動のうち、何ステップ分を実際の行動として実行するか
+  1回の予測で出力した行動のうち、何ステップ分を実際の行動として実行するか。学習時に設定したpolicy.chunk_sizeに対して、 policy.chunk_size >= policy.n_action_stepsである必要がある。
 - policy.temporal_ensemble_coeff (ACTのみ) \
   行動の平滑化の係数。-0.02〜0.02あたりで調べるのが良い？マイナスにすると、最新の予測を重視、プラスにすると、過去の予測を重視
 
