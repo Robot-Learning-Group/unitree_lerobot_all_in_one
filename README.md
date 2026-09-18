@@ -90,7 +90,7 @@ docker compose -f docker/compose.yaml run --rm lerobot lerobot-train \
 # 結果：unitree_lerobot/figure.png
 docker compose -f docker/compose.yaml run --rm lerobot \
   python -m unitree_lerobot.eval_robot.eval_g1_dataset \
-    --policy.path=outputs/train/出力フォルダ名/checkpoints/last/pretrained_model \
+    --policy.path=学習したモデル名 （例: outputs/train/board_insert_20260916/checkpoints/100000/pretrained_model） \
     --policy.device=cuda \
     --repo_id=local/データセット名 \
     --send_real_robot=false \
@@ -99,15 +99,15 @@ docker compose -f docker/compose.yaml run --rm lerobot \
 # 起動時に実機へ接続し、s入力で動作開始
 docker compose -f docker/compose.yaml run --rm lerobot \
   python -m unitree_lerobot.eval_robot.eval_g1 \
-    --policy.path=outputs/train/出力フォルダ名/checkpoints/last/pretrained_model \
+    --policy.path=学習したモデル名 （例: outputs/train/board_insert_20260916/checkpoints/100000/pretrained_model）\
     --policy.device=cuda \
     --repo_id=local/データセット名 \
     --image_host=192.168.123.164 --image_port=55555 \
     --arm=G1_29 --ee=dex3 --frequency=30 \
     --visualization=false \
-    # 必要に応じて以下も調整すると良い。
-    --policy.n_action_steps=30 \
-    --policy.temporal_ensemble_coeff=-0.01 # ACTのみのパラメータ
+    # 必要に応じて以下の平滑化は削除可能
+    --policy.n_action_steps=1 \
+    --policy.temporal_ensemble_coeff=-0.01 # ACTのみのパラメータ．これを設定する場合，n_action_steps=1にする
 ```
 ## 推論時に設定する主要なパラメータ
 - image_host \
