@@ -1,0 +1,6 @@
+# Mesh files here are committed as raw binaries, not LFS pointers.
+# Override the parent `*.stl filter=lfs` rule (which also matches `.STL`
+# on case-insensitive filesystems such as macOS).
+*.STL -filter binary
+# Convex hull meshes are stored in LFS.
+*.convex.stl filter=lfs diff=lfs merge=lfs -text
