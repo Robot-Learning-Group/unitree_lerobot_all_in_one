@@ -1,5 +1,22 @@
 # Unitree LeRobot all in one
 
+## PCのセットアップ（初回のみ）
+
+学習・推論用PC向け。Ubuntu 20.04／22.04／24.04（x86_64）とNVIDIA GPUが前提。
+
+```bash
+sudo apt update && sudo apt install -y git git-lfs
+git lfs install
+git clone --recursive https://github.com/Robot-Learning-Group/unitree_lerobot_all_in_one.git
+cd unitree_lerobot_all_in_one
+
+# NVIDIAドライバ580 open・CUDA Toolkit 12.8・Docker・NVIDIA Container Toolkitを導入
+# ドライバ未導入の場合はドライバだけ入れて終了するので、再起動後にもう一度実行
+sudo bash scripts/install_docker_nvidia.sh
+```
+
+完了後、ログアウトして再ログインする（sudoなしでdockerを使うため）。
+
 ## ビルド
 
 ```bash
