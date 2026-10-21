@@ -1,3 +1,4 @@
+from .hand_startup import initialize_hand_targets
 # for dex3-1
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize  # dds
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import HandCmd_, HandState_  # idl
@@ -76,16 +77,17 @@ class Dex3_1_Controller:
         self.left_hand_state_array = Array("d", Dex3_Num_Motors, lock=True)
         self.right_hand_state_array = Array("d", Dex3_Num_Motors, lock=True)
 
+        self._state_ready = threading.Event()
+
         # initialize subscribe thread
         self.subscribe_state_thread = threading.Thread(target=self._subscribe_hand_state)
         self.subscribe_state_thread.daemon = True
         self.subscribe_state_thread.start()
 
-        while True:
-            if any(self.left_hand_state_array) and any(self.right_hand_state_array):
-                break
-            time.sleep(0.01)
-            logger_mp.warning("[Dex3_1_Controller] Waiting to subscribe dds...")
+        initialize_hand_targets(
+            self._state_ready, self.left_hand_state_array, self.right_hand_state_array,
+            left_hand_array_in, right_hand_array_in, dual_hand_data_lock,
+            dual_hand_state_array_out, dual_hand_action_array_out)
         logger_mp.info("[Dex3_1_Controller] Subscribe dds ok.")
 
         hand_control_process = Process(
@@ -116,6 +118,7 @@ class Dex3_1_Controller:
                 # Update right hand state
                 for idx, id in enumerate(Dex3_1_Right_JointIndex):
                     self.right_hand_state_array[idx] = right_hand_msg.motor_state[id].q
+                self._state_ready.set()
             time.sleep(0.002)
 
     class _RIS_Mode:
@@ -294,14 +297,17 @@ class Dex1_1_Gripper_Controller:
         self.left_gripper_state_value = Value("d", 0.0, lock=True)
         self.right_gripper_state_value = Value("d", 0.0, lock=True)
 
+        self._state_ready = threading.Event()
+
         # initialize subscribe thread
         self.subscribe_state_thread = threading.Thread(target=self._subscribe_gripper_state)
         self.subscribe_state_thread.daemon = True
         self.subscribe_state_thread.start()
 
-        while not self.gripper_sub_ready:
-            time.sleep(0.01)
-            logger_mp.warning("[Dex1_1_Gripper_Controller] Waiting to subscribe dds...")
+        initialize_hand_targets(
+            self._state_ready, self.left_gripper_state_value, self.right_gripper_state_value,
+            left_gripper_value_in, right_gripper_value_in, dual_gripper_data_lock,
+            dual_gripper_state_out, dual_gripper_action_out)
         logger_mp.info("[Dex1_1_Gripper_Controller] Subscribe dds ok.")
 
         self.gripper_control_thread = threading.Thread(
@@ -325,10 +331,11 @@ class Dex1_1_Gripper_Controller:
         while True:
             left_gripper_msg = self.LeftGripperState_subscriber.Read()
             right_gripper_msg = self.RightGripperState_subscriber.Read()
-            self.gripper_sub_ready = True
             if left_gripper_msg is not None and right_gripper_msg is not None:
                 self.left_gripper_state_value.value = left_gripper_msg.states[0].q
                 self.right_gripper_state_value.value = right_gripper_msg.states[0].q
+                self.gripper_sub_ready = True
+                self._state_ready.set()
             time.sleep(0.002)
 
     def ctrl_dual_gripper(self, dual_gripper_action):

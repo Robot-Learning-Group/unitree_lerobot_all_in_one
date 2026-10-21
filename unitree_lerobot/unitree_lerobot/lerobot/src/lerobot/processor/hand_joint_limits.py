@@ -29,8 +29,8 @@ BRAINCO_LIMITS = {
 }
 
 
-def resolve_hand_joint_limits(features: dict[str, Any]) -> dict[str, Any]:
-    """Resolve a complete pair of hands from dataset state names, preserving their order."""
+def resolve_hand_joint_limits(features: dict[str, Any]) -> dict[str, Any] | None:
+    """Resolve supported hand joints, preserving dataset order; otherwise use normal statistics."""
     feature = features.get("observation.state", {})
     names = feature.get("names")
     if isinstance(names, list) and len(names) == 1 and isinstance(names[0], list):
@@ -43,8 +43,12 @@ def resolve_hand_joint_limits(features: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("observation.state shape does not match its joint names.")
 
     hand_names = {name for name in names if "Hand" in name}
+    if not hand_names:
+        return None  # Arms and Dex1 grippers use the ordinary dataset normalization.
+    inspire_names = {f"k{side}Hand{finger}" for side in ("Left", "Right")
+                     for finger in ("Pinky", "Ring", "Middle", "Index", "ThumbBend", "ThumbRotation")}
     for hand_type, limits in (("dex3", DEX3_LIMITS), ("brainco", BRAINCO_LIMITS)):
-        if hand_names == set(limits):
+        if hand_names <= set(limits):
             indices = [i for i, name in enumerate(names) if name in limits]
             return {
                 "hand_type": hand_type,
@@ -53,7 +57,9 @@ def resolve_hand_joint_limits(features: dict[str, Any]) -> dict[str, Any]:
                 "lower": [limits[names[i]][0] for i in indices],
                 "upper": [limits[names[i]][1] for i in indices],
             }
-    raise ValueError("Hand normalization requires a complete Dex3 or BrainCo joint-name set.")
+    if hand_names <= inspire_names:
+        return None
+    raise ValueError("Unrecognized or mixed hand joint names for normalization.")
 
 
 def normalize_hand_observations(
@@ -82,18 +88,22 @@ def configure_hand_normalization(
         if saved:
             raise ValueError("Saved hand normalization is enabled; cannot disable it when loading a checkpoint.")
         return
+    expected = resolve_hand_joint_limits(dataset_meta.features) if dataset_meta is not None else None
+    if dataset_meta is not None and expected is None:
+        if saved:
+            raise ValueError("Saved hand normalization does not match the dataset joints.")
+        return
     if len(steps) != 1:
         raise ValueError("Hand normalization requires exactly one supported state normalizer.")
     step = steps[0]
-    expected = resolve_hand_joint_limits(dataset_meta.features) if dataset_meta is not None else None
     if step.hand_joint_limits is None:
         if loaded:
-            raise ValueError("Checkpoint has no saved hand joint limits. Train with hand normalization enabled.")
+            raise ValueError("Checkpoint has no saved hand joint limits. Keep the training normalization setting.")
         if expected is None:
             raise ValueError("Hand normalization requires dataset metadata when creating a new processor.")
         step.hand_joint_limits = expected
     limits = step.hand_joint_limits
-    if expected is not None and limits["state_names"] != expected["state_names"]:
-        raise ValueError("Saved hand joint names do not match the dataset.")
+    if expected is not None and limits != expected:
+        raise ValueError("Saved hand normalization does not match dataset joint names/order/limits.")
     if ee is not None and ee != limits["hand_type"]:
         raise ValueError(f"Robot ee={ee!r} does not match saved hand type {limits['hand_type']!r}.")

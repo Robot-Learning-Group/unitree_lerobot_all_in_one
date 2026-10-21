@@ -176,12 +176,20 @@ def eval_main(cfg: EvalRealConfig):
     torch.backends.cudnn.benchmark = True
     torch.backends.cuda.matmul.allow_tf32 = True
 
+    arm_layout = None
+    if cfg.robot_type:
+        from unitree_lerobot.eval_robot.configured_arm import ArmJointLayout
+        arm_layout = ArmJointLayout(cfg)
+        cfg.ee = arm_layout.ee
+
     logging.info("Making policy.")
 
     dataset = LeRobotDataset(repo_id=cfg.repo_id)
 
     policy = make_policy(cfg=cfg.policy, ds_meta=dataset.meta)
     policy.eval()
+    if arm_layout is not None:
+        arm_layout.validate_features(dataset.meta.features, policy.config)
 
     preprocessor, postprocessor = make_pre_post_processors(
         policy_cfg=cfg.policy,
@@ -196,7 +204,11 @@ def eval_main(cfg: EvalRealConfig):
     )
 
     with torch.no_grad(), torch.autocast(device_type=device.type) if cfg.policy.use_amp else nullcontext():
-        eval_policy(cfg, dataset, policy, preprocessor, postprocessor)
+        if arm_layout is None:
+            eval_policy(cfg, dataset, policy, preprocessor, postprocessor)
+        else:
+            from unitree_lerobot.eval_robot.configured_arm import eval_configured_arm
+            eval_configured_arm(cfg, dataset, policy, preprocessor, postprocessor, arm_layout)
 
     logging.info("End of eval")
 

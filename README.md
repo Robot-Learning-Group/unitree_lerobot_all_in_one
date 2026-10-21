@@ -33,6 +33,14 @@ docker compose -f docker/compose.yaml build
 nano unitree_lerobot/unitree_lerobot/utils/constants.py
 ```
 
+右腕だけ使いたいなど、特殊な構成を使う場合は、`unitree_lerobot/unitree_lerobot/utils/constants.py` に `RobotConfig` を追加し、`ROBOT_CONFIGS` に名前を登録します。
+
+- `motors`：使用する関節名を、下記のデータ取得順に並べる。
+- `json_state_data_name`／`json_action_data_name`：使用する状態・指令の項目（例：`right_arm.qpos`、`right_ee.qpos`）。
+- `cameras`／`camera_to_image_key`：使用する画像名と、元データの `color_0` などからの対応。
+
+登録名を変換時の `--robot-type`、実機推論時の `--robot_type` に指定します。学習は変換後のデータセットを使います。現在の設定指定による実機推論は、G1の左右の腕・ハンドの `qpos` に対応しています。ハンドの種類は `--ee`、画像の配信ポートは必要に応じて `--camera_ports` で指定します。
+
 ## データセットの変換
 
 ```bash
@@ -126,6 +134,15 @@ docker compose -f docker/compose.yaml run --rm lerobot \
     --policy.n_action_steps=1 \
     --policy.temporal_ensemble_coeff=-0.01 # ACTのみのパラメータ．これを設定する場合，n_action_steps=1にする
 ```
+ロボットコンフィグを指定する場合は、上記の実機推論コマンドに以下を追加します。
+
+```bash
+--robot_type=コンフィグ名 \
+--initial_pose_episode=/workspace/datasets/task/episode_0001
+```
+
+`robot_type` は変換・学習に使った構成に合わせます。`initial_pose_episode` はコンテナ内のUnitree形式のエピソードフォルダです。`s` 入力で初期姿勢へ移動し、設定された関節で推論を開始します。対象外の腕・使用中ハンドの関節は初期姿勢を保持します。ハンドを含む設定では `--ee` も種類に合わせます。
+
 ## 推論時に設定する主要なパラメータ
 - image_host \
   カメラサーバーが立ってるパソコンのIPアドレス

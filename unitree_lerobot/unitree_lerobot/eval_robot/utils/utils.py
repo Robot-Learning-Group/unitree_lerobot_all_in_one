@@ -117,6 +117,10 @@ class EvalRealConfig:
     repo_id: str
     policy: PreTrainedConfig | None = None
 
+    robot_type: str = ""
+    initial_pose_episode: str = ""
+    camera_ports: dict[str, int] = field(default_factory=dict)
+
     root: str = ""
     episodes: int = 0
     frequency: float = 30.0

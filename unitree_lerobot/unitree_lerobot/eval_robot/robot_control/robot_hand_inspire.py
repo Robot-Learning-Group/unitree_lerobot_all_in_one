@@ -1,3 +1,4 @@
+from .hand_startup import initialize_hand_targets
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize  # dds
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import MotorCmds_, MotorStates_  # idl
 from unitree_sdk2py.idl.default import unitree_go_msg_dds__MotorCmd_
@@ -50,16 +51,17 @@ class Inspire_Controller:
         self.left_hand_state_array = Array("d", Inspire_Num_Motors, lock=True)
         self.right_hand_state_array = Array("d", Inspire_Num_Motors, lock=True)
 
+        self._state_ready = threading.Event()
+
         # initialize subscribe thread
         self.subscribe_state_thread = threading.Thread(target=self._subscribe_hand_state)
         self.subscribe_state_thread.daemon = True
         self.subscribe_state_thread.start()
 
-        while True:
-            if any(self.right_hand_state_array):  # any(self.left_hand_state_array) and
-                break
-            time.sleep(0.01)
-            logger_mp.warning("[Inspire_Controller] Waiting to subscribe dds...")
+        initialize_hand_targets(
+            self._state_ready, self.left_hand_state_array, self.right_hand_state_array,
+            left_hand_array, right_hand_array, dual_hand_data_lock,
+            dual_hand_state_array, dual_hand_action_array)
         logger_mp.info("[Inspire_Controller] Subscribe dds ok.")
 
         hand_control_process = Process(
@@ -87,6 +89,7 @@ class Inspire_Controller:
                     self.left_hand_state_array[idx] = hand_msg.states[id].q
                 for idx, id in enumerate(Inspire_Right_Hand_JointIndex):
                     self.right_hand_state_array[idx] = hand_msg.states[id].q
+                self._state_ready.set()
             time.sleep(0.002)
 
     def ctrl_dual_hand(self, left_q_target, right_q_target):

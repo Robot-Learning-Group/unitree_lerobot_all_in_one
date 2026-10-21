@@ -492,7 +492,29 @@ G1_DEX3_HEAD_ONLY_CONFIG = dataclasses.replace(
 
 
 
+# Right arm joint positions only; no left arm or gripper channels.
+G1_RIGHT_ARM_2CAM_CONFIG = RobotConfig(
+    motors=[
+        "kRightShoulderPitch",
+        "kRightShoulderRoll",
+        "kRightShoulderYaw",
+        "kRightElbow",
+        "kRightWristRoll",
+        "kRightWristPitch",
+        "kRightWristYaw",
+    ],
+    cameras=["cam_high", "cam_right_wrist"],
+    camera_to_image_key={
+        "color_0": "cam_high",
+        "color_2": "cam_right_wrist",
+    },
+    json_state_data_name=["right_arm.qpos"],
+    json_action_data_name=["right_arm.qpos"],
+)
+
+
 ROBOT_CONFIGS = {
+    "G1_RIGHT_ARM_2CAM_CONFIG": G1_RIGHT_ARM_2CAM_CONFIG,
     "Unitree_Z1_Single": Z1_SINGLE_CONFIG,
     "Unitree_Z1_Dual": Z1_CONFIG,
     "Unitree_G1_Dex1": G1_DEX1_CONFIG,

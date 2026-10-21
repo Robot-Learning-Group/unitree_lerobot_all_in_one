@@ -1,3 +1,4 @@
+from .hand_startup import initialize_hand_targets
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize  # dds
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import MotorCmds_, MotorStates_  # idl
 from unitree_sdk2py.idl.default import unitree_go_msg_dds__MotorCmd_
@@ -57,14 +58,17 @@ class Brainco_Controller:
         self.left_hand_state_array = Array("d", brainco_Num_Motors, lock=True)
         self.right_hand_state_array = Array("d", brainco_Num_Motors, lock=True)
 
+        self._state_ready = threading.Event()
+
         # initialize subscribe thread
         self.subscribe_state_thread = threading.Thread(target=self._subscribe_hand_state)
         self.subscribe_state_thread.daemon = True
         self.subscribe_state_thread.start()
 
-        while not self.hand_sub_ready:
-            time.sleep(0.1)
-            logger_mp.warning("[brainco_Controller] Waiting to subscribe dds...")
+        initialize_hand_targets(
+            self._state_ready, self.left_hand_state_array, self.right_hand_state_array,
+            left_hand_array, right_hand_array, dual_hand_data_lock,
+            dual_hand_state_array, dual_hand_action_array)
         logger_mp.info("[brainco_Controller] Subscribe dds ok.")
 
         hand_control_process = Process(
@@ -88,7 +92,6 @@ class Brainco_Controller:
         while True:
             left_hand_msg = self.LeftHandState_subscriber.Read()
             right_hand_msg = self.RightHandState_subscriber.Read()
-            self.hand_sub_ready = True
             if left_hand_msg is not None and right_hand_msg is not None:
                 # Update left hand state
                 for idx, id in enumerate(Brainco_Left_Hand_JointIndex):
@@ -96,6 +99,7 @@ class Brainco_Controller:
                 # Update right hand state
                 for idx, id in enumerate(Brainco_Right_Hand_JointIndex):
                     self.right_hand_state_array[idx] = right_hand_msg.states[id].q
+                self._state_ready.set()
             time.sleep(0.002)
 
     def ctrl_dual_hand(self, left_q_target, right_q_target):
