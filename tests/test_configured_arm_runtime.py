@@ -64,10 +64,17 @@ class RuntimeTests(unittest.TestCase):
         np.testing.assert_allclose(observation['observation.images.cam_high'][0,0],[30,20,10],atol=2)
         self.assertTrue(all(s.close.called for s in self.socks))
 
-    def test_cancel_at_prompt_never_constructs_controller(self):
-        with patch('builtins.input', return_value='q'):
+    def test_controller_starts_before_prompt_and_cancel_holds_pose(self):
+        def cancel(prompt):
+            self.setup.assert_called_once()
+            self.predict.assert_not_called()
+            self.assertIn('zero pose', prompt)
+            return 'q'
+        with patch('builtins.input', side_effect=cancel):
             self.run_loop()
-        self.setup.assert_not_called()
+        self.ctrl.ctrl_dual_arm.assert_called_once()
+        np.testing.assert_allclose(self.ctrl.ctrl_dual_arm.call_args.args[0], self.pose)
+        self.predict.assert_not_called()
 
     def test_camera_failure_before_start_never_constructs_controller(self):
         self.socks[1].recv.side_effect=zmq.Again()

@@ -488,6 +488,15 @@ G1_DEX3_HEAD_ONLY_CONFIG = dataclasses.replace(
         "color_0": "cam_left_high",
     },
 )
+
+# 5指ハンド，ヘッドカメラのみのコンフィグ
+G1_BRAINCO_HEAD_ONLY_CONFIG = dataclasses.replace(
+    G1_BRAINCO_CONFIG,
+    cameras=["cam_left_high"],
+    camera_to_image_key={
+        "color_0": "cam_left_high",
+    },
+)
 # --------------------------------------------------------------------------------------------------------------------------
 
 
@@ -527,5 +536,6 @@ ROBOT_CONFIGS = {
     "Unitree_G1_MoveibleLift_Dex1_NoUseWaist": MOVEIBLE_LIFT_G1_DEX1_NOUSEWAIST_CONFIG,
     "Unitree_G1_Lift_Dex1_UseWaist": LIFT_G1_DEX1_USEWAIST_CONFIG,
     "Unitree_G1_Lift_Dex1_NoUseWaist": LIFT_G1_DEX1_NOUSEWAIST_CONFIG,
+    "G1_BRAINCO_HEAD_ONLY_CONFIG": G1_BRAINCO_HEAD_ONLY_CONFIG,
     "G1_DEX3_HEAD_ONLY_CONFIG": G1_DEX3_HEAD_ONLY_CONFIG
 }

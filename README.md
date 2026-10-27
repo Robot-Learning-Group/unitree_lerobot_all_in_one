@@ -141,7 +141,7 @@ docker compose -f docker/compose.yaml run --rm lerobot \
 --initial_pose_episode=/workspace/datasets/task/episode_0001
 ```
 
-`robot_type` は変換・学習に使った構成に合わせます。`initial_pose_episode` はコンテナ内のUnitree形式のエピソードフォルダです。`s` 入力で初期姿勢へ移動し、設定された関節で推論を開始します。対象外の腕・使用中ハンドの関節は初期姿勢を保持します。ハンドを含む設定では `--ee` も種類に合わせます。
+`robot_type` は変換・学習に使った構成に合わせます。`initial_pose_episode` はコンテナ内のUnitree形式のエピソードフォルダです。カメラ受信確認後、`s` の入力待ち前に腕コントローラーが起動し、両腕がゼロ姿勢へ向かいます。`s` 入力で収録時の初期姿勢へ移動し、設定された関節で推論を開始します。対象外の腕・使用中ハンドの関節は初期姿勢を保持します。ハンドを含む設定では `--ee` も種類に合わせます。
 
 ## 推論時に設定する主要なパラメータ
 - image_host \

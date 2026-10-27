@@ -159,13 +159,15 @@ def eval_configured_arm(cfg, dataset, policy, preprocessor, postprocessor, layou
 
         images()  # All streams must work before connecting to robot controllers.
         step = dataset[dataset.meta.episodes["dataset_from_index"][0]]
-        if input("Enter 's' to move both arms to the episode pose and start configured arm control: ").lower() != "s":
-            return
+        # Match the original evaluation flow: the controller starts publishing
+        # its zero arm target before waiting for the user's start command.
         robot = setup_robot_interface(replace(cfg, ee=layout.ee))
         arm_ctrl, arm_ik = robot["arm_ctrl"], robot["arm_ik"]
         hand_shared = robot.get("ee_shared_mem", {})
         if layout.ee_dof and robot["ee_dof"] != layout.ee_dof:
             raise ValueError("Controller hand dimension does not match configuration")
+        if input("Arms are moving toward zero pose. Enter 's' to move both arms to the episode pose and start configured arm control: ").lower() != "s":
+            return
         hand_start = layout.read_hands(hand_shared)
         start = np.asarray(arm_ctrl.get_current_dual_arm_q(), dtype=float)
         if start.shape != (14,) or not np.isfinite(start).all():
