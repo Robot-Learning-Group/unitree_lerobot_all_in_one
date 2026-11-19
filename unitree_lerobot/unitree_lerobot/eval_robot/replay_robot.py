@@ -58,8 +58,12 @@ def replay_main(cfg: EvalRealConfig):
     dataset = LeRobotDataset(repo_id=cfg.repo_id, root=cfg.root, episodes=[cfg.episodes])
     actions = dataset.hf_dataset.select_columns("action")
 
+    # Frame range of the episode to replay (hf_dataset is not filtered by `episodes`,
+    # so restrict to this episode's boundaries explicitly).
+    from_idx = dataset.meta.episodes["dataset_from_index"][cfg.episodes]
+    to_idx = dataset.meta.episodes["dataset_to_index"][cfg.episodes]
+
     # init pose
-    from_idx = dataset.meta.episodes["dataset_from_index"][0]
     step = dataset[from_idx]
     init_left_arm_pose = step["observation.state"][:14].cpu().numpy()
 
@@ -70,7 +74,7 @@ def replay_main(cfg: EvalRealConfig):
         tau = arm_ik.solve_tau(init_left_arm_pose)
         arm_ctrl.ctrl_dual_arm(init_left_arm_pose, tau)
         time.sleep(1)
-        for idx in range(dataset.num_frames):
+        for idx in range(from_idx, to_idx):
             loop_start_time = time.perf_counter()
 
             left_ee_state = right_ee_state = np.array([])
@@ -110,6 +114,13 @@ def replay_main(cfg: EvalRealConfig):
 
             # Maintain frequency
             time.sleep(max(0, (1.0 / cfg.frequency) - (time.perf_counter() - loop_start_time)))
+
+        # Replay finished: hold the final pose (the control thread keeps publishing the
+        # last target) until the user chooses to return home.
+        logger_mp.info("Replay finished. Holding the final pose.")
+        release_input = input("Enter 's' to slowly return to the home position:")
+        if release_input.lower() == "s":
+            arm_ctrl.ctrl_dual_arm_go_home()
 
     cleanup_resources(image_info)
 
